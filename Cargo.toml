@@ -1,0 +1,60 @@
+[package]
+name = "azimuth-id"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[[bin]]
+name = "azimuth-id"
+path = "src/main.rs"
+
+[dependencies]
+# Internal crates (локальные пути)
+azimuth-proto = { path = "crates/azimuth-proto" }
+azimuth-client = { path = "crates/azimuth-client" }
+
+# gRPC
+tonic = { version = "0.14.3", features = ["codegen", "transport", "tls-ring"] }
+prost = "0.14.3"
+tonic-prost = "0.14.3"
+prost-types = "0.14.3"
+
+# HTTP / Axum
+axum = "0.8.8"
+axum-extra = { version = "0.12.5", features = ["typed-header"] }
+tower = { version = "0.5.3", features = ["limit"] }
+tower-http = { version = "0.6.8", features = ["cors", "trace"] }
+reqwest = { version = "0.13.2", features = ["json"] }
+
+# БД
+sqlx = { version = "0.8.6", features = ["runtime-tokio", "postgres", "macros", "chrono", "uuid"] }
+
+# Redis
+redis = { version = "1.1.0", features = ["tokio-comp", "connection-manager"] }
+
+# Auth & Crypto
+jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
+bcrypt = "0.19.0"
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+
+# Утилиты
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "2.0.18"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dotenvy = "0.15"
+tokio = { version = "1", features = ["full"] }
+utoipa = { version = "5.4.0", features = ["axum_extras"] }
+utoipa-scalar = { version = "0.3.0", features = ["axum"] }
+rand = { version = "0.10.0", features = ["std", "std_rng"] }
+base64 = "0.22"
+
+# Отправка писем
+lettre = { version = "0.11", features = ["tokio1", "tokio1-native-tls", "smtp-transport", "builder"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["test-util"] }

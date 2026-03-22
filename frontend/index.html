@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Azimuth — Регистрация</title>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f7; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center;
+      min-height: 100vh; 
+      padding: 20px; 
+    }
+    .container { 
+      background: white; 
+      border-radius: 12px; 
+      padding: 32px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
+      width: 100%; 
+      max-width: 420px; 
+    }
+    h1 { text-align: center; margin-bottom: 24px; color: #1d1d1f; }
+    h2 { text-align: center; margin-bottom: 16px; color: #1d1d1f; font-size: 20px; }
+    
+    .form-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 6px; font-weight: 500; color: #333; }
+    input { 
+      width: 100%; 
+      padding: 12px; 
+      border: 1px solid #ddd; 
+      border-radius: 8px; 
+      font-size: 14px; 
+    }
+    input:focus { outline: none; border-color: #007bff; }
+    
+    /* Код верификации — 6 полей */
+    .code-input-container {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin: 20px 0;
+    }
+    .code-input {
+      width: 48px;
+      height: 56px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 600;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      transition: border-color 0.2s;
+    }
+    .code-input:focus {
+      border-color: #007bff;
+      outline: none;
+    }
+    
+    .cf-turnstile { margin: 20px 0; }
+    
+    button { 
+      width: 100%; 
+      padding: 12px; 
+      background: #007bff; 
+      color: white;
+      border: none; 
+      border-radius: 8px; 
+      font-size: 16px; 
+      font-weight: 500; 
+      cursor: pointer; 
+      transition: background 0.2s;
+    }
+    button:hover { background: #0056b3; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    button.secondary {
+      background: #6c757d;
+      margin-top: 12px;
+    }
+    button.secondary:hover { background: #545b62; }
+    
+    .message { 
+      padding: 12px; 
+      border-radius: 8px; 
+      margin: 16px 0; 
+      font-size: 14px; 
+      text-align: center;
+    }
+    .message.success { background: #d4edda; color: #155724; }
+    .message.error { background: #f8d7da; color: #721c24; }
+    .message.info { background: #cce5ff; color: #004085; }
+    
+    .tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+    .tab { 
+      flex: 1; 
+      padding: 10px; 
+      border: none; 
+      background: #eee; 
+      border-radius: 8px; 
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .tab:hover { background: #ddd; }
+    .tab.active { background: #007bff; color: white; }
+    
+    .hidden { display: none !important; }
+    
+    .code-hint {
+      text-align: center;
+      color: #666;
+      font-size: 13px;
+      margin: 8px 0 16px;
+    }
+    
+    .resend-info {
+      text-align: center;
+      font-size: 13px;
+      color: #666;
+      margin-top: 12px;
+    }
+    .resend-link {
+      color: #007bff;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .resend-link:hover { text-decoration: underline; }
+    .resend-link.disabled {
+      color: #999;
+      cursor: not-allowed;
+    }
+    
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 16px;
+      color: #007bff;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .back-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧭 Azimuth</h1>
+    
+    <!-- Вкладки: Регистрация / Вход -->
+    <div class="tabs" id="main-tabs">
+      <button class="tab active" data-tab="register">Регистрация</button>
+      <button class="tab" data-tab="login">Вход</button>
+    </div>
+    
+    <!-- Сообщения -->
+    <div id="message" class="message hidden"></div>
+    
+    <!-- Форма регистрации -->
+    <form id="register-form">
+      <div class="form-group">
+        <label>Имя пользователя</label>
+        <input type="text" id="reg-username" required minlength="3" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="reg-email" required autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Пароль</label>
+        <input type="password" id="reg-password" required minlength="8" autocomplete="new-password">
+      </div>
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAACuMPqhC63YsRflW" data-callback="onRegisterTurnstileSuccess"></div>
+      <button type="submit" id="register-btn" disabled>Зарегистрироваться</button>
+    </form>
+    
+    <!-- Форма входа -->
+    <form id="login-form" class="hidden">
+      <div class="form-group">
+        <label>Имя пользователя</label>
+        <input type="text" id="login-username" required autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>Пароль</label>
+        <input type="password" id="login-password" required autocomplete="current-password">
+      </div>
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAACuMPqhC63YsRflW" data-callback="onLoginTurnstileSuccess" data-action="login"></div>
+      <button type="submit" id="login-btn" disabled>Войти</button>
+    </form>
+    
+    <!-- Экран ввода кода верификации -->
+    <div id="verify-code-form" class="hidden">
+      <h2>📧 Проверьте почту</h2>
+      <p class="code-hint">Мы отправили 6-значный код на <strong id="verify-email-display"></strong></p>
+      
+      <div class="code-input-container">
+        <input type="text" class="code-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="0">
+        <input type="text" class="code-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="1">
+        <input type="text" class="code-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="2">
+        <input type="text" class="code-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="3">
+        <input type="text" class="code-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="4">
+        <input type="text" class="code-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="5">
+      </div>
+      
+      <button type="button" id="verify-code-btn">Подтвердить</button>
+      <button type="button" id="resend-code-btn" class="secondary">Отправить код повторно</button>
+      
+      <div class="resend-info" id="resend-timer"></div>
+      
+      <a href="#" class="back-link" id="back-to-register">← Вернуться к регистрации</a>
+    </div>
+    
+    <!-- Успешная верификация -->
+    <div id="verify-success" class="hidden" style="text-align: center;">
+      <div style="font-size: 48px;">✅</div>
+      <h3>Email подтверждён!</h3>
+      <p style="margin: 16px 0; color: #666;">Теперь можно войти в аккаунт</p>
+      <button onclick="showTab('login')">Перейти ко входу</button>
+    </div>
+  </div>
+
+  <script>
+    // ===== Глобальные переменные =====
+    let registerToken = null;
+    let loginToken = null;
+    let pendingEmail = null;  // email для верификации
+    let resendCooldown = 0;   // таймер для resend
+    
+    // ===== Переключение вкладок =====
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        showTab(tab.dataset.tab);
+      });
+    });
+    
+    function showTab(name) {
+      // Скрываем все формы
+      document.getElementById('register-form').classList.add('hidden');
+      document.getElementById('login-form').classList.add('hidden');
+      document.getElementById('verify-code-form').classList.add('hidden');
+      document.getElementById('verify-success').classList.add('hidden');
+      document.getElementById('main-tabs').classList.remove('hidden');
+      
+      // Показываем нужную
+      if (name === 'register') {
+        document.getElementById('register-form').classList.remove('hidden');
+      } else if (name === 'login') {
+        document.getElementById('login-form').classList.remove('hidden');
+      }
+      
+      // Сбрасываем состояние
+      document.getElementById('message').classList.add('hidden');
+      registerToken = null;
+      loginToken = null;
+      pendingEmail = null;
+      document.getElementById('register-btn').disabled = true;
+      document.getElementById('login-btn').disabled = true;
+      
+      // Сбрасываем код верификации
+      document.querySelectorAll('.code-input').forEach(inp => inp.value = '');
+      document.querySelectorAll('.code-input')[0]?.focus();
+    }
+    
+    // ===== CAPTCHA callbacks =====
+    function onRegisterTurnstileSuccess(token) { 
+      registerToken = token; 
+      document.getElementById('register-btn').disabled = false; 
+    }
+    function onLoginTurnstileSuccess(token) { 
+      loginToken = token; 
+      document.getElementById('login-btn').disabled = false; 
+    }
+    
+    // ===== Сообщения =====
+    function showMessage(text, type = 'error') {
+      const el = document.getElementById('message');
+      el.textContent = text;
+      el.className = 'message ' + type;
+      el.classList.remove('hidden');
+      // Авто-скрытие через 5 сек для успеха
+      if (type === 'success') setTimeout(() => el.classList.add('hidden'), 5000);
+    }
+    
+    // ===== Регистрация =====
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!registerToken) { showMessage('Пройдите CAPTCHA', 'error'); return; }
+      
+      const btn = document.getElementById('register-btn');
+      const originalText = btn.textContent;
+      btn.disabled = true; 
+      btn.textContent = '...';
+      
+      try {
+        const res = await fetch('/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('reg-username').value.trim(),
+            password: document.getElementById('reg-password').value,
+            email: document.getElementById('reg-email').value.trim(),
+            cf_turnstile_response: registerToken
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok || res.status === 201) {
+          // ✅ Регистрация успешна — показываем ввод кода
+          pendingEmail = document.getElementById('reg-email').value.trim();
+          document.getElementById('verify-email-display').textContent = pendingEmail;
+          
+          document.getElementById('register-form').reset();
+          if (window.turnstile) turnstile.reset();
+          
+          // Показываем форму ввода кода
+          document.getElementById('register-form').classList.add('hidden');
+          document.getElementById('main-tabs').classList.add('hidden');
+          document.getElementById('verify-code-form').classList.remove('hidden');
+          document.getElementById('message').classList.add('hidden');
+          
+          // Фокус на первое поле кода
+          document.querySelectorAll('.code-input')[0]?.focus();
+          
+          // Запускаем таймер resend
+          startResendTimer();
+          
+        } else {
+          showMessage(data.message || data.error || 'Ошибка регистрации', 'error');
+        }
+      } catch (err) {
+        showMessage('Ошибка сети: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false; 
+        btn.textContent = originalText;
+      }
+    });
+    
+    // ===== Ввод кода (авто-переход между полями) =====
+    document.querySelectorAll('.code-input').forEach((input, index, inputs) => {
+      input.addEventListener('input', (e) => {
+        // Разрешаем только цифры
+        e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        
+        // Авто-переход к следующему полю
+        if (e.target.value.length === 1 && index < inputs.length - 1) {
+          inputs[index + 1].focus();
+        }
+        
+        // Авто-отправка когда все 6 цифр введены
+        const code = Array.from(inputs).map(i => i.value).join('');
+        if (code.length === 6) {
+          verifyCode(code);
+        }
+      });
+      
+      input.addEventListener('keydown', (e) => {
+        // Backspace — переход к предыдущему полю
+        if (e.key === 'Backspace' && !e.target.value && index > 0) {
+          inputs[index - 1].focus();
+        }
+      });
+      
+      // Вставка кода из буфера (если пользователь вставил 6 цифр сразу)
+      input.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const paste = (e.clipboardData || window.clipboardData).getData('text');
+        const digits = paste.replace(/[^0-9]/g, '').slice(0, 6);
+        
+        digits.split('').forEach((digit, i) => {
+          if (inputs[i]) inputs[i].value = digit;
+        });
+        
+        if (digits.length === 6) {
+          verifyCode(digits);
+        } else if (digits.length > 0) {
+          inputs[Math.min(digits.length, inputs.length - 1)]?.focus();
+        }
+      });
+    });
+    
+    // ===== Верификация кода =====
+    async function verifyCode(code) {
+      if (!pendingEmail) { showMessage('Ошибка: email не указан', 'error'); return; }
+      
+      const btn = document.getElementById('verify-code-btn');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Проверка...';
+      
+      try {
+        const res = await fetch('/auth/verify-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: pendingEmail,
+            code: code
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          // ✅ Успешная верификация
+          showMessage('✅ Email подтверждён!', 'success');
+          document.getElementById('verify-code-form').classList.add('hidden');
+          document.getElementById('verify-success').classList.remove('hidden');
+          pendingEmail = null;
+        } else if (res.status === 400) {
+          // ❌ Неверный код
+          showMessage('Неверный код. Попробуйте ещё раз.', 'error');
+          // Очищаем поля для повторного ввода
+          document.querySelectorAll('.code-input').forEach(inp => inp.value = '');
+          document.querySelectorAll('.code-input')[0]?.focus();
+        } else if (res.status === 410) {
+          // ⏰ Код истёк
+          showMessage('Код истёк. Запросите новый.', 'error');
+          document.querySelectorAll('.code-input').forEach(inp => inp.value = '');
+          document.querySelectorAll('.code-input')[0]?.focus();
+        } else if (res.status === 429) {
+          // 🚫 Превышено количество попыток
+          showMessage('Превышено количество попыток. Запросите новый код.', 'error');
+          document.querySelectorAll('.code-input').forEach(inp => inp.value = '');
+        } else {
+          showMessage(data.message || 'Ошибка верификации', 'error');
+        }
+      } catch (err) {
+        showMessage('Ошибка сети: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    }
+    
+    // ===== Отправка кода повторно =====
+    document.getElementById('resend-code-btn').addEventListener('click', async () => {
+      if (!pendingEmail || resendCooldown > 0) return;
+      
+      const btn = document.getElementById('resend-code-btn');
+      btn.disabled = true;
+      btn.textContent = 'Отправка...';
+      
+      try {
+        const res = await fetch('/auth/resend-verification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: pendingEmail })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          showMessage('✅ Новый код отправлен!', 'success');
+          startResendTimer();  // перезапускаем таймер
+          // Очищаем поля кода
+          document.querySelectorAll('.code-input').forEach(inp => inp.value = '');
+          document.querySelectorAll('.code-input')[0]?.focus();
+        } else if (res.status === 429) {
+          // Rate limit
+          const retryAfter = data.retry_after_seconds || 60;
+          showMessage(`Подождите ${retryAfter} сек перед повторной отправкой`, 'error');
+          startResendTimer(retryAfter);
+        } else {
+          showMessage(data.message || 'Ошибка отправки кода', 'error');
+        }
+      } catch (err) {
+        showMessage('Ошибка сети: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Отправить код повторно';
+      }
+    });
+    
+    // ===== Таймер для resend =====
+    function startResendTimer(seconds = 60) {
+      resendCooldown = seconds;
+      const timerEl = document.getElementById('resend-timer');
+      const linkEl = document.getElementById('resend-code-btn');
+      
+      function updateTimer() {
+        if (resendCooldown > 0) {
+          timerEl.textContent = `Повторная отправка доступна через ${resendCooldown} сек`;
+          linkEl.classList.add('disabled');
+          linkEl.disabled = true;
+          resendCooldown--;
+          setTimeout(updateTimer, 1000);
+        } else {
+          timerEl.textContent = '';
+          linkEl.classList.remove('disabled');
+          linkEl.disabled = false;
+        }
+      }
+      updateTimer();
+    }
+    
+    // ===== Вход =====
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!loginToken) { showMessage('Пройдите CAPTCHA', 'error'); return; }
+      
+      const btn = document.getElementById('login-btn');
+      const originalText = btn.textContent;
+      btn.disabled = true; 
+      btn.textContent = '...';
+      
+      try {
+        const res = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('login-username').value.trim(),
+            password: document.getElementById('login-password').value,
+            cf_turnstile_response: loginToken
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          localStorage.setItem('azimuth_token', data.token);
+          showMessage('✅ Вход успешен!', 'success');
+          // Здесь можно редиректить: window.location.href = '/dashboard';
+        } else if (res.status === 403 && data.error === 'email_not_verified') {
+          // Пользователь не верифицирован — показываем ввод кода
+          pendingEmail = document.getElementById('login-username').value.trim();
+          document.getElementById('verify-email-display').textContent = pendingEmail;
+          
+          document.getElementById('login-form').classList.add('hidden');
+          document.getElementById('main-tabs').classList.add('hidden');
+          document.getElementById('verify-code-form').classList.remove('hidden');
+          document.getElementById('message').classList.add('hidden');
+          
+          document.querySelectorAll('.code-input')[0]?.focus();
+          startResendTimer();
+          
+        } else {
+          showMessage(data.message || data.error || 'Ошибка входа', 'error');
+        }
+      } catch (err) {
+        showMessage('Ошибка сети: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false; 
+        btn.textContent = originalText;
+      }
+    });
+    
+    // ===== Вернуться к регистрации =====
+    document.getElementById('back-to-register').addEventListener('click', (e) => {
+      e.preventDefault();
+      showTab('register');
+    });
+    
+    // ===== Проверка параметров URL (для прямой ссылки верификации) =====
+    window.addEventListener('load', async () => {
+      const params = new URLSearchParams(window.location.search);
+      
+      // Поддержка старых ссылок с токеном (для обратной совместимости)
+      if (params.has('token')) {
+        try {
+          const res = await fetch('/auth/verify-email?' + params.toString());
+          if (res.ok) {
+            showTab('login');
+            showMessage('✅ Email подтверждён! Теперь можно войти.', 'success');
+          }
+        } catch (err) { console.error(err); }
+      }
+      
+      // Поддержка параметра верификации через код
+      if (params.get('verified') === 'success') {
+        showTab('login');
+        showMessage('✅ Email подтверждён! Теперь можно войти.', 'success');
+      }
+    });
+  </script>
+</body>
+</html>

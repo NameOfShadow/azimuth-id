@@ -1,0 +1,25 @@
+[package]
+name = "azimuth-client"
+version = "0.1.0"
+edition = "2021"
+description = "gRPC client for Azimuth Auth Service"
+license = "MIT"
+repository = "https://github.com/NameOfShadow/azimuth-auth"
+readme = "README.md"
+
+[dependencies]
+azimuth-proto = { path = "../azimuth-proto", features = ["serde"] }
+tonic = "0.14.3"
+prost = "0.14.3"
+tonic-prost = "0.14.3"
+thiserror = "2.0.18"
+tracing = "0.1"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+
+[features]
+default = []
+tls = []
+
+[dev-dependencies]
+tokio = { version = "1", features = ["test-util"] }

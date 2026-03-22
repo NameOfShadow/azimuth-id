@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  # ===== PostgreSQL =====
+  azimuth-db:
+    image: postgres:15-alpine
+    container_name: azimuth-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: azimuth_auth
+      POSTGRES_USER: azimuth
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-super-secure-db-password-change-me}
+    volumes:
+      - azimuth_db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U azimuth -d azimuth_auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - azimuth-network
+
+  # ===== Redis =====
+  azimuth-redis:
+    image: redis:8.6.1-alpine
+    container_name: azimuth-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - azimuth_redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - azimuth-network
+
+  # ===== Бэкенд (Rust) =====
+  azimuth-id:
+    image: rust:1.94-slim
+    container_name: azimuth-id
+    restart: unless-stopped
+    working_dir: /app
+    
+    # ===== Кэш и код =====
+    volumes:
+      - .:/app
+      - cargo-cache:/usr/local/cargo
+      
+    # ===== Переменные окружения =====
+    env_file:
+      - .env 
+    environment:
+      # Переопределения / специфичные настройки:
+      HTTP_ADDR: "0.0.0.0:3000"
+      GRPC_ADDR: "0.0.0.0:50051"
+      SQLX_OFFLINE: "true"
+      RUST_LOG: info
+    
+    ports:
+      - "3000:3000"
+      - "50051:50051"
+    
+    command: >
+      bash -c "
+        apt-get update && 
+        apt-get install -y pkg-config libssl-dev protobuf-compiler && 
+        cargo run --release --bin azimuth-id
+      "
+    
+    depends_on:
+      azimuth-db:
+        condition: service_healthy
+      azimuth-redis:
+        condition: service_healthy
+    
+    networks:
+      - azimuth-network
+
+  # ===== Nginx (фронтенд + прокси) =====
+  azimuth-web:
+    image: nginx:alpine
+    container_name: azimuth-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"  # ← для HTTPS позже
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # Для HTTPS (потом):
+      # - ./certbot/conf:/etc/letsencrypt:ro
+      # - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - azimuth-id
+    networks:
+      - azimuth-network
+
+networks:
+  azimuth-network:
+    driver: bridge
+
+volumes:
+  azimuth_db_data:
+  azimuth_redis_data:
+  cargo-cache:

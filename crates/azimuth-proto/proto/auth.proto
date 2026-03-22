@@ -1,0 +1,58 @@
+syntax = "proto3";
+package azimuth.auth.v1;
+
+import "google/protobuf/timestamp.proto";
+
+service AuthService {
+  // Валидация токена — основной метод для микросервисов
+  rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
+  
+  // Получение данных пользователя
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  
+  // Health check для orchestration
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+// ===== REQUESTS =====
+
+message VerifyTokenRequest {
+  string token = 1;
+  string service_name = 2; // кто запрашивает (для аудита)
+  optional string required_scope = 3;  // опциональная проверка scope
+}
+
+message GetUserRequest {
+  oneof identifier {
+    string username = 1;
+    int64 user_id = 2;
+  }
+}
+
+message HealthRequest {}
+
+// ===== RESPONSES =====
+
+message VerifyTokenResponse {
+  bool valid = 1;
+  optional string username = 2;
+  optional int64 user_id = 3;
+  optional int64 expires_at = 4;  // unix timestamp
+  optional string scope = 5;
+  string error_message = 6; // заполняется только если !valid
+}
+
+message GetUserResponse {
+  bool found = 1;
+  optional int64 user_id = 2;
+  optional string username = 3;
+  optional int64 quota_bytes = 4;
+  optional int64 used_bytes = 5;
+  optional int64 created_at = 6;
+}
+
+message HealthResponse {
+  bool serving = 1;
+  string version = 2;
+  uint64 uptime_seconds = 3;
+}
